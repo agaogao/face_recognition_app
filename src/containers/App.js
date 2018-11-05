@@ -23,6 +23,7 @@ const particlesParams = {
     }
   }
 };
+
 class App extends Component {
   constructor() {
     super();
@@ -38,28 +39,47 @@ class App extends Component {
   }
 
   locateFaces = (data) => {
-    console.log('try', data.outputs[0].data.regions.map(item => item.region_info.bounding_box));
-    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
-    const image = document.getElementById('inputImage');
-    const width = Number(image.width);
-    const height = Number(image.height);
-    console.log(clarifaiFace);
-    return{
-      leftCol: clarifaiFace.left_col * width,
-      topRow: clarifaiFace.top_row * height,
-      rightCol: width - (clarifaiFace.right_col * width),
-      bottomRow: height - (clarifaiFace.bottom_row * height)
-    }
+    data.outputs[0].data.regions.forEach(item => {
+      const region = item.region_info.bounding_box;
+      const image = document.getElementById('inputImage');
+      const width = Number(image.width);
+      const height = Number(image.height);
+      const leftCol = region.left_col * width;
+      const topRow = region.top_row * height;
+      const rightCol = width - (region.right_col * width);
+      const bottomRow = height - (region.bottom_row * height);
+      const box_info = {
+        leftCol: leftCol,
+        topRow: topRow,
+        rightCol: rightCol,
+        bottomRow: bottomRow
+      };
+      this.mappingMultiFaces(box_info);
+    });
   }
 
-  displayFaceBox = (box) => {
-    this.setState({ box: box });
+  mappingMultiFaces = (box) => {
+    const imageSection = document.getElementById('imageSection');
+    imageSection.html = "";
+    const newDiv = document.createElement('div');
+    const newContent = document.createTextNode('');
+    newDiv.appendChild(newContent);
+    newDiv.classList.add('bounding-box');
+    const pxTop = String(box.topRow)+'px';
+    const pxBottom = String(box.bottomRow)+'px';
+    const pxLeft = String(box.leftCol)+'px';
+    const pxRight = String(box.rightCol)+'px';
+    newDiv.style.top = pxTop;
+    newDiv.style.left = pxLeft;
+    newDiv.style.right = pxRight;
+    newDiv.style.bottom = pxBottom;
+    imageSection.appendChild(newDiv);
   }
 
   onSubmit = () => {
     this.setState({ imageUrl: this.state.input });
     app.models.predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
-    .then(response => this.displayFaceBox(this.locateFaces(response)))
+    .then(response => this.locateFaces(response))
     .catch(err => console.log(err));
   }
 
